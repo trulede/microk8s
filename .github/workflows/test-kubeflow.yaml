@@ -1,0 +1,93 @@
+name: Test Kubeflow
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    name: AWS
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo snap install juju --classic
+        sudo snap install juju-wait --classic
+
+    - name: Bootstrap onto AWS
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: |
+        set -eux
+        ls -lath ~/
+        echo 'PATH=$PATH:/snap/bin' >> ~/.profile
+        echo 'PATH=$PATH:/snap/bin' >> ~/.bash_profile
+        . ~/.bash_profile 
+        juju autoload-credentials --client aws
+        juju bootstrap aws/us-east-1 uk8saws
+        juju deploy ubuntu --constraints 'cores=4 mem=16G root-disk=60G'
+        juju wait -vw
+
+    - name: Copy code to AWS instance
+      run: juju scp -- -r $(pwd)/ ubuntu/0:~/
+
+    - name: Install build dependencies
+      run: |
+        juju ssh ubuntu/0 <<EOF
+          set -eux
+          sudo snap install lxd
+          sudo /snap/bin/lxd.migrate -yes
+          sudo /snap/bin/lxd waitready
+          sudo /snap/bin/lxd init --auto
+          sudo snap install snapcraft --classic
+        EOF
+
+    - name: Build MicroK8s
+      run: |
+        juju ssh ubuntu/0 <<EOF
+          set -eux
+          cd microk8s
+          sudo snapcraft --use-lxd
+          ls -lath
+          pwd
+          sudo snap install microk8s*.snap --classic --dangerous
+        EOF
+
+    - name: Deploy Kubeflow
+      run: |
+        juju ssh ubuntu/0 <<EOF
+          set -eux
+          KUBEFLOW_DEBUG=true microk8s.enable kubeflow
+        EOF
+    
+    - name: Install test dependencies
+      run: |
+        juju ssh ubuntu/0 <<EOF
+          set -eux
+          sudo apt update
+          sudo apt install -y libssl-dev
+          sudo pip3 install pytest sh kfp requests pyyaml
+        EOF
+
+    - name: Test Kubeflow
+      run: |
+        juju ssh ubuntu/0 <<EOF
+          # Forwards ports directly to pipelines-api to avoid Ambassador auth,
+          # and submits pipelines to test Kubeflow.
+          trap 'pkill -f svc/pipelines-api' SIGINT SIGTERM EXIT
+          set -eux
+          git clone https://github.com/juju-solutions/bundle-kubeflow.git
+          cd bundle-kubeflow
+          microk8s.kubectl port-forward svc/pipelines-api 8888:8888 &
+          (i=10; while ! curl localhost:8888 ; do ((--i)) || exit; sleep 1; done)
+          pytest -vvs "$@"
+        EOF
+
+    - name: Destroy controller
+      run: juju destroy-controller -y uk8saws --destroy-all-models --destroy-storage
+      if: always()
