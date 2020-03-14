@@ -2,7 +2,7 @@
 
 if echo "$*" | grep -q -- 'help'; then
     prog=$(basename -s.wrapper "$0")
-    echo "Usage: $prog LXC-IMAGE ORIGINAL-CHANNEL UPGRADE-WITH-CHANNEL [PROXY]"
+    echo "Usage: $prog LXC-IMAGE ORIGINAL-CHANNEL UPGRADE-WITH-CHANNEL [test-cluster] [PROXY]"
     echo ""
     echo "Example: $prog ubuntu:18.04 beta edge"
     echo "Use Ubuntu 18.04 for running our tests."
@@ -43,14 +43,27 @@ function create_machine() {
 
 set -uex
 
+# Parse arguments
 DISTRO=$1
 NAME=machine-$RANDOM
 FROM_CHANNEL=$2
 TO_CHANNEL=$3
 PROXY=""
-if [ "$#" -ne 3 ]
+TEST_CLUSTER=false
+if [ "$#" -eq 4 ]
 then
-  PROXY=$4
+  # we have optional argumenrs
+  if [ $4 == 'teset-cluster' ]
+  then
+    TEST_CLUSTER=true
+  else
+    PROXY=$4
+  fi
+fi
+if [ "$#" -eq 5 ]
+then
+  TEST_CLUSTER=true
+  PROXY=$5
 fi
 
 
@@ -97,3 +110,20 @@ lxc exec $VM2_NAME -- /var/tmp/tests/patch-kube-proxy.sh
 
 lxc delete $VM1_NAME --force
 lxc delete $VM2_NAME --force
+
+if TEST_CLUSTER
+then
+  VM1_NAME=machine-$RANDOM
+  VM2_NAME=machine-$RANDOM
+  VM3_NAME=machine-$RANDOM
+  create_machine $VM1_NAME $PROXY
+  create_machine $VM2_NAME $PROXY
+  create_machine $VM3_NAME $PROXY
+  lxc exec $VM1_NAME -- snap install microk8s --channel=${TO_CHANNEL} --classic
+  lxc exec $VM2_NAME -- snap install microk8s --channel=${TO_CHANNEL} --classic
+  lxc exec $VM3_NAME -- snap install microk8s --channel=${TO_CHANNEL} --classic
+
+  lxc delete $VM1_NAME --force
+  lxc delete $VM2_NAME --force
+  lxc delete $VM3_NAME --force
+fi
