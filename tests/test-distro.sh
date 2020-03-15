@@ -66,6 +66,26 @@ then
   PROXY=$5
 fi
 
+if TEST_CLUSTER
+then
+  VM1_NAME=machine-$RANDOM
+  VM2_NAME=machine-$RANDOM
+  VM3_NAME=machine-$RANDOM
+  create_machine $VM1_NAME $PROXY
+  create_machine $VM2_NAME $PROXY
+  create_machine $VM3_NAME $PROXY
+  lxc exec $VM1_NAME -- snap install microk8s --channel=${TO_CHANNEL} --classic
+  lxc exec $VM2_NAME -- snap install microk8s --channel=${TO_CHANNEL} --classic
+  lxc exec $VM3_NAME -- snap install microk8s --channel=${TO_CHANNEL} --classic
+
+  # form the cluster
+  lxc exec $VM1_NAME -- microk8s.add-node
+
+  lxc delete $VM1_NAME --force
+  lxc delete $VM2_NAME --force
+  lxc delete $VM3_NAME --force
+fi
+
 
 # Test addons
 create_machine $NAME $PROXY
@@ -111,19 +131,3 @@ lxc exec $VM2_NAME -- /var/tmp/tests/patch-kube-proxy.sh
 lxc delete $VM1_NAME --force
 lxc delete $VM2_NAME --force
 
-if TEST_CLUSTER
-then
-  VM1_NAME=machine-$RANDOM
-  VM2_NAME=machine-$RANDOM
-  VM3_NAME=machine-$RANDOM
-  create_machine $VM1_NAME $PROXY
-  create_machine $VM2_NAME $PROXY
-  create_machine $VM3_NAME $PROXY
-  lxc exec $VM1_NAME -- snap install microk8s --channel=${TO_CHANNEL} --classic
-  lxc exec $VM2_NAME -- snap install microk8s --channel=${TO_CHANNEL} --classic
-  lxc exec $VM3_NAME -- snap install microk8s --channel=${TO_CHANNEL} --classic
-
-  lxc delete $VM1_NAME --force
-  lxc delete $VM2_NAME --force
-  lxc delete $VM3_NAME --force
-fi
