@@ -80,7 +80,7 @@ class VM:
                                              .split())
             return output
         else:
-            raise Exception("Not implemented for backend {}".format(self.backend)
+            raise Exception("Not implemented for backend {}".format(self.backend))
 
     def release(self):
         print("Destroying VM in {}".format(self.backend))
