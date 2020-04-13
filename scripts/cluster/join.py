@@ -47,15 +47,19 @@ def get_connection_info(master_ip, master_port, token, callback_token):
                 cluster_agent_port = cluster_agent_port[-1].split('=')
                 cluster_agent_port = cluster_agent_port[0].rstrip()
 
-    req_data = {"token": token,
-                "hostname": socket.gethostname(),
-                "port": cluster_agent_port,
-                "callback": callback_token}
+    req_data = {
+        "token": token,
+        "hostname": socket.gethostname(),
+        "port": cluster_agent_port,
+        "callback": callback_token,
+    }
 
     # TODO: enable ssl verification
-    connection_info = requests.post("https://{}:{}/{}/join".format(master_ip, master_port, CLUSTER_API),
-                                    json=req_data,
-                                    verify=False)
+    connection_info = requests.post(
+        "https://{}:{}/{}/join".format(master_ip, master_port, CLUSTER_API),
+        json=req_data,
+        verify=False,
+    )
     if connection_info.status_code != 200:
         print("Failed to join cluster. {}".format(connection_info.json()["error"]))
         exit(1)
@@ -105,16 +109,20 @@ def get_etcd_client_cert(master_ip, master_port, token):
     :param token: token to contact the master with
     """
     cer_req_file = "{}/certs/server.remote.csr".format(snapdata_path)
-    cmd_cert = "openssl req -new -sha256 -key {SNAP_DATA}/certs/server.key -out {csr} " \
-               "-config {SNAP_DATA}/certs/csr.conf".format(SNAP_DATA=snapdata_path, csr=cer_req_file)
+    cmd_cert = (
+        "openssl req -new -sha256 -key {SNAP_DATA}/certs/server.key -out {csr} "
+        "-config {SNAP_DATA}/certs/csr.conf".format(SNAP_DATA=snapdata_path, csr=cer_req_file)
+    )
     subprocess.check_call(cmd_cert.split())
     with open(cer_req_file) as fp:
         csr = fp.read()
         req_data = {'token': token, 'request': csr}
         # TODO: enable ssl verification
-        signed = requests.post("https://{}:{}/{}/sign-cert".format(master_ip, master_port, CLUSTER_API),
-                               json=req_data,
-                               verify=False)
+        signed = requests.post(
+            "https://{}:{}/{}/sign-cert".format(master_ip, master_port, CLUSTER_API),
+            json=req_data,
+            verify=False,
+        )
         if signed.status_code != 200:
             print("Failed to sign certificate. {}".format(signed.json()["error"]))
             exit(1)
@@ -233,7 +241,9 @@ def mark_cluster_node():
     os.chmod(lock_file, 0o700)
     services = ['etcd', 'apiserver', 'apiserver-kicker', 'controller-manager', 'scheduler']
     for service in services:
-        subprocess.check_call("systemctl restart snap.microk8s.daemon-{}.service".format(service).split())
+        subprocess.check_call(
+            "systemctl restart snap.microk8s.daemon-{}.service".format(service).split()
+        )
 
 
 def generate_callback_token():
@@ -277,8 +287,10 @@ def reset_current_installation():
     os.remove(server_cert_file)
 
     for config_file in ["kubelet", "flanneld", "kube-proxy"]:
-        shutil.copyfile("{}/default-args/{}".format(snap_path, config_file),
-                        "{}/args/{}".format(snapdata_path, config_file))
+        shutil.copyfile(
+            "{}/default-args/{}".format(snap_path, config_file),
+            "{}/args/{}".format(snapdata_path, config_file),
+        )
 
     for user in ["proxy", "kubelet"]:
         config = "{}/credentials/{}.config".format(snapdata_path, user)
@@ -344,16 +356,22 @@ def remove_callback_token(node):
 def remove_node(node):
     try:
         # Make sure this node exists
-        subprocess.check_call("{}/microk8s-kubectl.wrapper get no {}".format(snap_path, node).split(),
-                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(
+            "{}/microk8s-kubectl.wrapper get no {}".format(snap_path, node).split(),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
     except subprocess.CalledProcessError:
         print("Node {} does not exist.".format(node))
         exit(1)
 
     remove_kubelet_token(node)
     remove_callback_token(node)
-    subprocess.check_call("{}/microk8s-kubectl.wrapper delete no {}".format(snap_path, node).split(),
-                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.check_call(
+        "{}/microk8s-kubectl.wrapper delete no {}".format(snap_path, node).split(),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 if __name__ == "__main__":
@@ -396,7 +414,9 @@ if __name__ == "__main__":
 
         store_remote_ca(info["ca"])
         update_flannel(info["etcd"], master_ip, master_port, token)
-        update_kubeproxy(info["kubeproxy"], info["ca"], master_ip, info["apiport"], hostname_override)
+        update_kubeproxy(
+            info["kubeproxy"], info["ca"], master_ip, info["apiport"], hostname_override
+        )
         update_kubelet(info["kubelet"], info["ca"], master_ip, info["apiport"])
         mark_cluster_node()
     sys.exit(0)

@@ -15,10 +15,9 @@ from common import definitions
 logger = logging.getLogger(__name__)
 
 
-@click.command(name="microk8s", context_settings=dict(
-    ignore_unknown_options=True,
-    allow_extra_args=True,
-))
+@click.command(
+    name="microk8s", context_settings=dict(ignore_unknown_options=True, allow_extra_args=True,)
+)
 @click.option('-h', '--help', is_flag=True)
 @click.pass_context
 def cli(ctx, help):
@@ -94,7 +93,9 @@ def _show_install_help():
       --mem   RAM in GB used by MicroK8s (default={})
       --disk  Maximum volume in GB of the dynamicaly expandable hard disk to be used (default={})
        -y, --assume-yes  Automatic yes to prompts"""
-    Echo.info(msg.format(definitions.DEFAULT_CORES, definitions.DEFAULT_MEMORY, definitions.DEFAULT_DISK))
+    Echo.info(
+        msg.format(definitions.DEFAULT_CORES, definitions.DEFAULT_MEMORY, definitions.DEFAULT_DISK)
+    )
 
 
 def install(args) -> None:
@@ -105,7 +106,9 @@ def install(args) -> None:
     parser.add_argument('--cpu', default=definitions.DEFAULT_CORES, type=int)
     parser.add_argument('--mem', default=definitions.DEFAULT_MEMORY, type=int)
     parser.add_argument('--disk', default=definitions.DEFAULT_DISK, type=int)
-    parser.add_argument('-y', '--assume-yes', action='store_true', default=definitions.DEFAULT_ASSUME)
+    parser.add_argument(
+        '-y', '--assume-yes', action='store_true', default=definitions.DEFAULT_ASSUME
+    )
     args = parser.parse_args(args)
     vm_provider_name: str = 'multipass'
     vm_provider_class = get_provider_for(vm_provider_name)
@@ -116,10 +119,14 @@ def install(args) -> None:
         if provider_error.prompt_installable:
             if echo.is_tty_connected() and args.assume_yes:
                 vm_provider_class.setup_provider(echoer=echo)
-            elif echo.is_tty_connected() and echo.confirm(
-                "Support for {!r} needs to be set up. "
-                "Would you like to do that it now?".format(provider_error.provider)
-            ) and not args.assume_yes:
+            elif (
+                echo.is_tty_connected()
+                and echo.confirm(
+                    "Support for {!r} needs to be set up. "
+                    "Would you like to do that it now?".format(provider_error.provider)
+                )
+                and not args.assume_yes
+            ):
                 vm_provider_class.setup_provider(echoer=echo)
             else:
                 raise provider_error
@@ -140,9 +147,13 @@ def uninstall() -> None:
     except ProviderNotFound as provider_error:
         if provider_error.prompt_installable:
             if echo.is_tty_connected():
-                echo.warning((
-                    "MicroK8s is not running. VM provider {!r} has been removed."
-                    .format(provider_error.provider)))
+                echo.warning(
+                    (
+                        "MicroK8s is not running. VM provider {!r} has been removed.".format(
+                            provider_error.provider
+                        )
+                    )
+                )
             return 1
         else:
             raise provider_error
@@ -192,7 +203,11 @@ def _get_microk8s_commands() -> List:
         instance_info = instance.get_instance_info()
         if instance_info.is_running():
             commands = instance.run('ls -1 /snap/bin/'.split(), hide_output=True)
-            mk8s = [c.decode().replace('microk8s.', '') for c in commands.split() if c.decode().startswith('microk8s')]
+            mk8s = [
+                c.decode().replace('microk8s.', '')
+                for c in commands.split()
+                if c.decode().startswith('microk8s')
+            ]
             return mk8s
         else:
             return ["start", "stop"]

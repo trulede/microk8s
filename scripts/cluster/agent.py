@@ -14,7 +14,7 @@ from .common.utils import try_set_file_permissions
 from flask import Flask, jsonify, request, abort, Response
 
 app = Flask(__name__)
-CLUSTER_API="cluster/api/v1.0"
+CLUSTER_API = "cluster/api/v1.0"
 snapdata_path = os.environ.get('SNAP_DATA')
 snap_path = os.environ.get('SNAP')
 cluster_tokens_file = "{}/credentials/cluster-tokens.txt".format(snapdata_path)
@@ -103,14 +103,18 @@ def sign_client_cert(cert_request, token):
     :returns: the certificate
     """
     req_file = "{}/certs/request.{}.csr".format(snapdata_path, token)
-    sign_cmd = "openssl x509 -sha256 -req -in {csr} -CA {SNAP_DATA}/certs/ca.crt -CAkey" \
-               " {SNAP_DATA}/certs/ca.key -CAcreateserial -out {SNAP_DATA}/certs/server.{token}.crt" \
-               " -days 365".format(csr=req_file, SNAP_DATA=snapdata_path, token=token)
+    sign_cmd = (
+        "openssl x509 -sha256 -req -in {csr} -CA {SNAP_DATA}/certs/ca.crt -CAkey"
+        " {SNAP_DATA}/certs/ca.key -CAcreateserial -out {SNAP_DATA}/certs/server.{token}.crt"
+        " -days 365".format(csr=req_file, SNAP_DATA=snapdata_path, token=token)
+    )
 
     with open(req_file, 'w') as fp:
         fp.write(cert_request)
     subprocess.check_call(sign_cmd.split())
-    with open("{SNAP_DATA}/certs/server.{token}.crt".format(SNAP_DATA=snapdata_path, token=token)) as fp:
+    with open(
+        "{SNAP_DATA}/certs/server.{token}.crt".format(SNAP_DATA=snapdata_path, token=token)
+    ) as fp:
         cert = fp.read()
     return cert
 
@@ -281,7 +285,7 @@ def join_node():
         callback_token = request.form['callback']
 
     if not is_valid(token):
-        error_msg={"error": "Invalid token"}
+        error_msg = {"error": "Invalid token"}
         return Response(json.dumps(error_msg), mimetype='application/json', status=500)
 
     add_token_to_certs_request(token)
@@ -302,13 +306,15 @@ def join_node():
     else:
         kubelet_args = read_kubelet_args_file()
 
-    return jsonify(ca=ca,
-                   etcd=etcd_ep,
-                   kubeproxy=proxy_token,
-                   apiport=api_port,
-                   kubelet=kubelet_token,
-                   kubelet_args=kubelet_args,
-                   hostname_override=node_addr)
+    return jsonify(
+        ca=ca,
+        etcd=etcd_ep,
+        kubeproxy=proxy_token,
+        apiport=api_port,
+        kubelet=kubelet_token,
+        kubelet_args=kubelet_args,
+        hostname_override=node_addr,
+    )
 
 
 @app.route('/{}/sign-cert'.format(CLUSTER_API), methods=['POST'])
@@ -325,7 +331,7 @@ def sign_cert():
 
     token = token.strip()
     if not is_valid(token, certs_request_tokens_file):
-        error_msg={"error": "Invalid token"}
+        error_msg = {"error": "Invalid token"}
         return Response(json.dumps(error_msg), mimetype='application/json', status=500)
 
     remove_token_from_file(token, certs_request_tokens_file)
@@ -347,7 +353,7 @@ def configure():
 
     callback_token = callback_token.strip()
     if not is_valid(callback_token, callback_token_file):
-        error_msg={"error": "Invalid token"}
+        error_msg = {"error": "Invalid token"}
         return Response(json.dumps(error_msg), mimetype='application/json', status=500)
 
     # We expect something like this:
@@ -406,17 +412,23 @@ def configure():
             if "restart" in service and service["restart"]:
                 service_name = get_service_name(service["name"])
                 print("restarting {}".format(service["name"]))
-                subprocess.check_call("systemctl restart snap.microk8s.daemon-{}.service".format(service_name).split())
+                subprocess.check_call(
+                    "systemctl restart snap.microk8s.daemon-{}.service".format(service_name).split()
+                )
 
     if "addon" in configuration:
         for addon in configuration["addon"]:
             print("{}".format(addon["name"]))
             if "enable" in addon and addon["enable"]:
                 print("Enabling {}".format(addon["name"]))
-                subprocess.check_call("{}/microk8s-enable.wrapper {}".format(snap_path, addon["name"]).split())
+                subprocess.check_call(
+                    "{}/microk8s-enable.wrapper {}".format(snap_path, addon["name"]).split()
+                )
             if "disable" in addon and addon["disable"]:
                 print("Disabling {}".format(addon["name"]))
-                subprocess.check_call("{}/microk8s-disable.wrapper {}".format(snap_path, addon["name"]).split())
+                subprocess.check_call(
+                    "{}/microk8s-disable.wrapper {}".format(snap_path, addon["name"]).split()
+                )
 
     resp_date = {"result": "ok"}
     resp = Response(json.dumps(resp_date), status=200, mimetype='application/json')
@@ -425,7 +437,9 @@ def configure():
 
 def usage():
     print("Agent responsible for setting up a cluster. Arguments:")
-    print("-l, --listen:   interfaces to listen to (defaults to {})".format(default_listen_interface))
+    print(
+        "-l, --listen:   interfaces to listen to (defaults to {})".format(default_listen_interface)
+    )
     print("-p, --port:     port to listen to (default {})".format(default_port))
 
 

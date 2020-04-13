@@ -15,4 +15,3 @@ def try_set_file_permissions(file):
     except:
         # not setting the group means only the current user can access the file
         pass
-

@@ -46,9 +46,7 @@ class Multipass(Provider):
     def _get_provider_name(cls):
         return "multipass"
 
-    def run(
-        self, command: Sequence[str], hide_output: bool = False
-    ) -> Optional[bytes]:
+    def run(self, command: Sequence[str], hide_output: bool = False) -> Optional[bytes]:
         env_command = self._get_env_command()
 
         cmd = ["sudo"]
@@ -67,11 +65,7 @@ class Multipass(Provider):
         disk = "{}G".format(specs['disk'])
 
         self._multipass_cmd.launch(
-            instance_name=self.instance_name,
-            cpus=cpus,
-            mem=mem,
-            disk=disk,
-            image=image
+            instance_name=self.instance_name, cpus=cpus, mem=mem, disk=disk, image=image
         )
 
     def get_instance_info(self) -> InstanceInfo:
@@ -85,7 +79,6 @@ class Multipass(Provider):
             raise errors.ProviderInstanceNotFoundError(
                 instance_name=self.instance_name
             ) from instance_error
-
 
     def _start(self):
         try:
@@ -110,16 +103,10 @@ class Multipass(Provider):
         self._multipass_cmd.copy_files(source=source, destination=destination)
 
     def __init__(
-        self,
-        *,
-        echoer,
-        is_ephemeral: bool = False,
-        build_provider_flags: Dict[str, str] = None,
+        self, *, echoer, is_ephemeral: bool = False, build_provider_flags: Dict[str, str] = None,
     ) -> None:
         super().__init__(
-            echoer=echoer,
-            is_ephemeral=is_ephemeral,
-            build_provider_flags=build_provider_flags,
+            echoer=echoer, is_ephemeral=is_ephemeral, build_provider_flags=build_provider_flags,
         )
         self._multipass_cmd = MultipassCommand(platform=sys.platform)
         self._instance_info: Optional[InstanceInfo] = None

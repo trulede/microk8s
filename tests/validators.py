@@ -32,16 +32,19 @@ def validate_dns_dashboard():
         if port_search:
             break
 
-    grafana_url = "http{}://127.0.0.1:{}" \
-                  "/api/v1/namespaces/kube-system/services/" \
-                  "monitoring-grafana/proxy".format(port_search.group(1), port_search.group(2))
+    grafana_url = (
+        "http{}://127.0.0.1:{}"
+        "/api/v1/namespaces/kube-system/services/"
+        "monitoring-grafana/proxy".format(port_search.group(1), port_search.group(2))
+    )
     assert grafana_url
 
     attempt = 50
     while attempt >= 0:
         resp = requests.get(grafana_url, verify=False)
-        if (resp.status_code == 200 and grafana_url.startswith('http://')) or \
-            (resp.status_code == 401 and grafana_url.startswith('https://')):
+        if (resp.status_code == 200 and grafana_url.startswith('http://')) or (
+            resp.status_code == 401 and grafana_url.startswith('https://')
+        ):
             break
         time.sleep(2)
         attempt -= 1
@@ -218,12 +221,12 @@ def validate_registry():
     """
     Validate the private registry.
     """
-    
+
     wait_for_pod_state("", "container-registry", "running", label="app=registry")
     pvc_stdout = kubectl("get pvc registry-claim -n container-registry -o yaml")
     pvc_yaml = yaml.safe_load(pvc_stdout)
     storage = pvc_yaml['spec']['resources']['requests']['storage']
-    assert re.match("(^[2-9][0-9]{1,}|^[1-9][0-9]{2,})(Gi$)",storage)
+    assert re.match("(^[2-9][0-9]{1,}|^[1-9][0-9]{2,})(Gi$)", storage)
     docker("pull busybox")
     docker("tag busybox localhost:32000/my-busybox")
     docker("push localhost:32000/my-busybox")
@@ -337,9 +340,21 @@ def validate_linkerd():
         return
 
     wait_for_installation()
-    wait_for_pod_state("", "linkerd", "running", label="linkerd.io/control-plane-component=controller", timeout_insec=300)
+    wait_for_pod_state(
+        "",
+        "linkerd",
+        "running",
+        label="linkerd.io/control-plane-component=controller",
+        timeout_insec=300,
+    )
     print("Linkerd controller up and running.")
-    wait_for_pod_state("", "linkerd", "running", label="linkerd.io/control-plane-component=proxy-injector", timeout_insec=300)
+    wait_for_pod_state(
+        "",
+        "linkerd",
+        "running",
+        label="linkerd.io/control-plane-component=proxy-injector",
+        timeout_insec=300,
+    )
     print("Linkerd proxy injector up and running.")
     ### Disabling this test because the deletion of the namespace get stuck.
     here = os.path.dirname(os.path.abspath(__file__))

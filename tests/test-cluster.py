@@ -9,12 +9,11 @@ from utils import (
     wait_for_pod_state,
     microk8s_disable,
     microk8s_reset,
-    microk8s_clustering_capable
+    microk8s_clustering_capable,
 )
 
 
 class TestCluster(object):
-
     @pytest.fixture(autouse=True)
     def clean_up(self):
         """

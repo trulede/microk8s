@@ -2,8 +2,17 @@
 import os
 import argparse
 
-from common.utils import exit_if_no_permission, is_cluster_locked, wait_for_ready, is_cluster_ready, \
-    get_available_addons, get_current_arch, get_addon_by_name, kubectl_get, kubectl_get_clusterroles
+from common.utils import (
+    exit_if_no_permission,
+    is_cluster_locked,
+    wait_for_ready,
+    is_cluster_ready,
+    get_available_addons,
+    get_current_arch,
+    get_addon_by_name,
+    kubectl_get,
+    kubectl_get_clusterroles,
+)
 
 
 def is_enabled(addon, item):
@@ -12,7 +21,7 @@ def is_enabled(addon, item):
     else:
         filepath = os.path.expandvars(addon)
         return os.path.isfile(filepath)
-    
+
     return False
 
 
@@ -57,7 +66,13 @@ def print_short_yaml(isReady, enabled_addons, disabled_addons):
     print("{:>2} {} {}".format("", "running:", isReady))
 
     if not isReady:
-        print("{:>2} {} {}".format("","message:","microk8s is not running. Use microk8s inspect for a deeper inspection."))
+        print(
+            "{:>2} {} {}".format(
+                "",
+                "message:",
+                "microk8s is not running. Use microk8s inspect for a deeper inspection.",
+            )
+        )
         return
 
     if isReady:
@@ -74,7 +89,13 @@ def print_yaml(isReady, enabled_addons, disabled_addons):
     print("{:>2} {} {}".format("", "running:", isReady))
 
     if not isReady:
-        print("{:>2} {} {}".format("","message:","microk8s is not running. Use microk8s inspect for a deeper inspection."))
+        print(
+            "{:>2} {} {}".format(
+                "",
+                "message:",
+                "microk8s is not running. Use microk8s inspect for a deeper inspection.",
+            )
+        )
         return
 
     if isReady:
@@ -96,7 +117,7 @@ def print_addon_status(enabled):
     if len(enabled) > 0:
         print("enabled")
     else:
-        print ("disabled")
+        print("disabled")
 
 
 def get_status(available_addons, isReady):
@@ -124,15 +145,29 @@ if __name__ == '__main__':
     is_cluster_locked()
 
     # initiate the parser with a description
-    parser = argparse.ArgumentParser(description='Microk8s cluster status check.', prog='microk8s status')
-    parser.add_argument("--format", help="print cluster and addon status, output can be in yaml, pretty or short",
-                        default="short", choices={"pretty", "yaml", "short"})
-    parser.add_argument("-w", "--wait-ready", action='store_true', help="wait until the cluster is in ready state")
-    parser.add_argument("-t", "--timeout",
-                        help="specify a timeout in seconds when waiting for the cluster to be ready.", type=int,
-                        default=0)
+    parser = argparse.ArgumentParser(
+        description='Microk8s cluster status check.', prog='microk8s status'
+    )
+    parser.add_argument(
+        "--format",
+        help="print cluster and addon status, output can be in yaml, pretty or short",
+        default="short",
+        choices={"pretty", "yaml", "short"},
+    )
+    parser.add_argument(
+        "-w", "--wait-ready", action='store_true', help="wait until the cluster is in ready state"
+    )
+    parser.add_argument(
+        "-t",
+        "--timeout",
+        help="specify a timeout in seconds when waiting for the cluster to be ready.",
+        type=int,
+        default=0,
+    )
     parser.add_argument("-a", "--addon", help="check the status of an addon.", default="all")
-    parser.add_argument("--yaml", action='store_true', help="DEPRECATED, use '--format yaml' instead")
+    parser.add_argument(
+        "--yaml", action='store_true', help="DEPRECATED, use '--format yaml' instead"
+    )
 
     # read arguments from the command line
     args = parser.parse_args()
